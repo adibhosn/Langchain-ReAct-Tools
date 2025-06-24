@@ -1,0 +1,51 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambiente virtual (por padrão uv usa .venv)
+.venv/
+env/
+venv/
+
+# Configs e metadados do VS Code / IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos de log e de debug
+*.log
+*.pot
+*.mo
+
+# Testes
+.coverage
+.tox/
+.pytest_cache/
+
+# Dados temporários
+*.tmp
+*.temp
+*.bak
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# pip/uv
+pip-wheel-metadata/
+__pypackages__/
+uv.lock
+
+# Arquivo de dependências (se for regenerado automaticamente)
+# requirements.txt
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/

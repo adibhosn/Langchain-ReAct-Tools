@@ -8,6 +8,10 @@ __pycache__/
 .env/
 venv/
 
+# Arquivos de configuração do ambiente
+.env.local
+.env
+
 # Configs e metadados do VS Code / IDEs
 .vscode/
 .idea/

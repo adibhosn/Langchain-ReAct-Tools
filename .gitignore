@@ -5,7 +5,7 @@ __pycache__/
 
 # Ambiente virtual (por padrão uv usa .venv)
 .venv/
-env/
+.env/
 venv/
 
 # Configs e metadados do VS Code / IDEs

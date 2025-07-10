@@ -1,3 +1,4 @@
+from langchain_core.tools import Tool
 import os
 import requests
 from dotenv import load_dotenv
@@ -9,15 +10,12 @@ if not token:
     raise ValueError("APIFY_TOKEN não encontrada no .env!")
 
 def scrape_instagram_profile(username: str) -> dict:
-    """Função para buscar dados de um perfil do Instagram usando o Apify
+    """Function to fetch Instagram profile data using Apify
     Args:
-        username (str): Nome de usuário do Instagram
+        username (str): Instagram username
     Returns: 
-        dict: Dicionário com os dados do perfil (full_name, url, bio, followers, picture)
+        dict: Dictionary with profile data (full_name, url, bio, followers, picture)
     """
-    # token = os.getenv("APIFY_TOKEN")
-    # if not token:
-    #     raise ValueError("APIFY_TOKEN não encontrada no .env!")
 
     ACTOR_URL = f"https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token={token}"
 

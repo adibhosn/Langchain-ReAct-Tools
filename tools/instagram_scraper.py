@@ -16,37 +16,64 @@ def scrape_instagram_profile(username: str) -> dict:
     Returns: 
         dict: Dictionary with profile data (full_name, url, bio, followers, picture)
     """
+    try:
+        ACTOR_URL = f"https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token={token}"
 
-    ACTOR_URL = f"https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token={token}"
+        # Input da requisição
+        payload = {
+            "addParentData": False,
+            "directUrls": [
+                f"https://www.instagram.com/{username}/"
+            ],
+            "enhanceUserSearchWithFacebookPage": False,
+            "isUserReelFeedURL": False,
+            "isUserTaggedFeedURL": False,
+            "resultsLimit": 1,
+            "resultsType": "details",  # MUITO IMPORTANTE!
+        }
 
-    # Input da requisição
-    payload = {
-        "addParentData": False,
-        "directUrls": [
-            f"https://www.instagram.com/{username}/"
-        ],
-        "enhanceUserSearchWithFacebookPage": False,
-        "isUserReelFeedURL": False,
-        "isUserTaggedFeedURL": False,
-        "resultsLimit": 1,
-        "resultsType": "details",  # MUITO IMPORTANTE!
-    }
+        # Faz a requisição
+        response = requests.post(ACTOR_URL, json=payload)
+        response.raise_for_status()  # Levanta exceção para status HTTP de erro
+        
+        json_data = response.json()
+        
+        # Verifica se a resposta não está vazia
+        if not json_data or len(json_data) == 0:
+            return {
+                "error": f"No data found for username: {username}",
+                "full_name": None,
+                "url": None,
+                "bio": None,
+                "followers": None,
+                "picture": None
+            }
 
-    # Faz a requisição
-    response = requests.post(ACTOR_URL, json=payload)
-
-    json =  response.json()
-
-    full_name = json[0].get("fullName")
-    url = json[0].get("url")
-    bio = json[0].get("biography")
-    followers = json[0].get("followersCount")
-    picture = json[0].get("profilePictureUrl")
-
-    return {
-        "full_name": full_name,
-        "url": url,
-        "bio": bio,
-        "followers": followers,
-        "picture": picture
-    }
+        user_data = json_data[0]
+        
+        return {
+            "full_name": user_data.get("fullName"),
+            "url": user_data.get("url"),
+            "bio": user_data.get("biography"),
+            "followers": user_data.get("followersCount"),
+            "picture": user_data.get("profilePictureUrl")
+        }
+        
+    except requests.exceptions.RequestException as e:
+        return {
+            "error": f"Request failed: {str(e)}",
+            "full_name": None,
+            "url": None,
+            "bio": None,
+            "followers": None,
+            "picture": None
+        }
+    except Exception as e:
+        return {
+            "error": f"Unexpected error: {str(e)}",
+            "full_name": None,
+            "url": None,
+            "bio": None,
+            "followers": None,
+            "picture": None
+        }

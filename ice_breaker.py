@@ -11,10 +11,18 @@ if __name__ == '__main__':
     if not api_key:
         raise ValueError("GOOGLE_API_KEY não encontrada no .env!")
     
-    username = "neymarjr"
+    username = "cristiano"
     profile_data = lookup_agent(username)
     if profile_data["status"] == "success":
-        extracted_data = profile_data["output"]  # likely a string with Instagram data
+        extracted_data = profile_data["output"]
+
+        # Transformar para string legível
+        formatted_profile_data = (
+            f"Name: {extracted_data['full_name']}\n"
+            f"Bio: {extracted_data['bio']}\n"
+            f"Followers: {extracted_data['followers']}\n"
+            f"Profile: {extracted_data['url']}"
+        )
     else:
         raise Exception(f"Lookup failed: {profile_data['error']}")
 
@@ -24,7 +32,9 @@ if __name__ == '__main__':
     """
     )
     
-    user_msg = HumanMessagePromptTemplate.from_template("""Based on the following data extracted from an Instagram profile, write a short paragraph describing the person:
+    user_msg = HumanMessagePromptTemplate.from_template("""Based on the following data extracted from the user, write a short paragraph describing the person:
+    
+    {profile_data}
     
     Guidelines:
     - Introduce the person by name and highlight relevant details from the biography.
@@ -32,9 +42,6 @@ if __name__ == '__main__':
     - Do not mention that the data came from an API or scraping.
     - Write in third person, using a neutral and professional tone.
     - Keep the summary concise, ideally under 100 words.
-
-    Profile Data:
-    {profile_data}
     """)
 
     chat_prompt = ChatPromptTemplate.from_messages([system_prompt, user_msg])
@@ -47,6 +54,6 @@ if __name__ == '__main__':
 
     chain = chat_prompt | llm
 
-    response = chain.invoke({"profile_data": extracted_data})
+    response = chain.invoke({"profile_data": formatted_profile_data})
 
     print(response.content)

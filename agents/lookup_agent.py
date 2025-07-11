@@ -6,10 +6,21 @@ from langchain.agents import (
     create_react_agent
 )
 from tools.instagram_scraper import scrape_instagram_profile
-from tools.X_scraper import scrape_x_profile
 from dotenv import load_dotenv
 import os
 import json
+from pydantic import BaseModel, Field
+from typing import Optional
+
+
+
+class ProfileData(BaseModel):
+    full_name: str = Field(..., description="Full name of the user")
+    url: str = Field(..., description="Profile URL")
+    bio: str = Field(..., description="Biography of the user")
+    followers: int = Field(..., description="Number of followers")
+    picture: Optional[str] = None
+
 
 
 def lookup_agent(name: str):
@@ -31,31 +42,37 @@ def lookup_agent(name: str):
             name="scrape_instagram_profile",
             func=lambda username: json.dumps(scrape_instagram_profile(username)),
             description="Function to fetch Instagram profile data using Apify. Returns a dictionary with profile data (full_name, url, bio, followers, picture)."
-        ),
-        Tool(
-            name="scrape_x_profile",
-            func=lambda username: json.dumps(scrape_x_profile(username)),
-            description="Function to fetch X (Twitter) profile data using Apify. Returns a dictionary with profile data (name, username, bio, followers, following, image)."
-        )
-    ]
+        )]
+
 
     lookup_agent_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are an agent that looks up profiles on Instagram and Twitter using tools.\n"
-        "You have access to the following tools:\n{tools}\n\n"
-        "The tool names are: {tool_names}\n\n"
-        "When given a name or username, you must use these tools to retrieve profile data.\n"
-        "If both profiles are found, prefer Instagram data.\n"
-        "Use the tools wisely and document your reasoning step by step.\n\n"
-        "Format your response **exactly** as:\n"
-        "Thought: [Your reasoning here]\n"
-        "Action: [Tool name exactly as provided in tool_names]\n"
-        "Action Input: [Tool input here, e.g., username]"
-    ),
-    HumanMessagePromptTemplate.from_template("{input}\n\n{agent_scratchpad}")
-])
+        SystemMessagePromptTemplate.from_template(
+            "You are an agent that retrieves Instagram profile data using tools.\n"
+            "You have access to the following tools:\n{tools}\n\n"
+            "The tool names are: {tool_names}\n\n"
+            "You must output the final answer as a valid JSON object with the following keys:\n"
+            "full_name (string), url (string), bio (string), followers (integer), picture (string or null).\n"
+            "No explanations, no extra commentary — only the JSON.\n\n"
+            "Use this format:\n"
+            "Thought: [your reasoning]\n"
+            "Action: [tool name]\n"
+            "Action Input: [username]\n"
+            "Observation: [result]\n"
+            "Final Answer: [the JSON described above]"
+            "You must always end with 'Final Answer' containing the valid JSON object as specified."
 
-    lookup_agent = create_react_agent(llm, tools_for_agent, lookup_agent_prompt)
+        ),
+        HumanMessagePromptTemplate.from_template("{input}\n\n{agent_scratchpad}")
+    ])
+
+    lookup_agent = create_react_agent(
+        llm,
+        tools_for_agent,
+        lookup_agent_prompt.partial(
+            tools="\n".join(f"{tool.name}: {tool.description}" for tool in tools_for_agent),
+            tool_names=", ".join(tool.name for tool in tools_for_agent)
+        )
+    )
 
     lookup_executor = AgentExecutor(
         agent=lookup_agent, 
@@ -67,14 +84,23 @@ def lookup_agent(name: str):
 
     try:
         result = lookup_executor.invoke({"input": f"{name}"})
-        
-        return {
-            "status": "success",
-            "output": result.get("output", ""),
-            "username": name
-        }
 
-        
+        # Validação e parsing do output
+        if "output" in result:
+            json_output = json.loads(result["output"])  # Converte JSON string para dict
+            structured_output = ProfileData.parse_obj(json_output)  # Valida com Pydantic
+            return {
+                "status": "success",
+                "output": structured_output.dict(),
+                "username": name
+            }
+        else:
+            return {
+                "status": "error",
+                "error": "No output found",
+                "username": name
+            }
+
     except Exception as e:
         return {
             "status": "error",
